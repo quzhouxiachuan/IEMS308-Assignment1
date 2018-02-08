@@ -3,49 +3,39 @@ library(tidyverse)
 library(arules)
 library(lubridate)
 library(arulesViz)
-
-x=read.csv('./Desktop/test.csv')
+setwd('./Desktop/association rules_hw/')
+x=read.csv('./Desktop/association rules_hw/data_top8000.csv')
 x=x[complete.cases(x),]
-
-#how many items each transction include? 
-detach("package:plyr", unload=TRUE)
-x %>% 
-  group_by(trans_id) %>% 
-  summarize(n_items = mean(quantity)) %>%
-  ggplot(aes(x=n_items))+
-  geom_histogram(fill="indianred", bins = 100000) + 
-  geom_rug()+
-  coord_cartesian(xlim=c(0,80))
-
 
 #100 best sellers 
 tmp = x %>%
-  group_by(sku, description) %>% 
+  group_by(sku) %>% 
   summarize(count = sum(quantity)) %>% 
   arrange(desc(count))
 
-tmp %>%
-  ggplot(aes(x=reorder(description,count), y=count))+
+tmp[1:50,] %>%
+  ggplot(aes(x=reorder(sku,count), y=count))+
   geom_bar(stat="identity",fill="indian red")+
   coord_flip() + labs(x='sku_code')
 
 #x_sorted <- x[order(x$trans_id),]
 #get the dataset for association rule input 
+library(plyr)
 itemList <- ddply(x,c("trans_id"), 
-                  function(df1)paste(df1$description, 
+                  function(df1)paste(df1$sku, 
                                      collapse = ","))
 colnames(itemList)[2] <- c("items")
 write.csv(itemList,"market_basket.csv", quote = FALSE, row.names = FALSE, col.names = FALSE)
 
 #delete the ',' at the end of table 
-tr <- read.transactions('market_basket.csv', format = 'basket', sep = ',')
-rules <- apriori(tr, parameter = list(supp=0.001, conf=0.8))
+tr <- read.transactions('/Users/yudeng/Desktop/association rules_hw/market_basket.csv', format = 'basket', sep = ',')
+summary(tr)
+rules <- apriori(tr, parameter = list(supp=0.1, conf=0.8))
 rules <- sort(rules, by='confidence', decreasing = TRUE)
 summary(rules)
-topRules <- rules[1:6]
+topRules <- rules[1:50]
 plot(topRules)
 plot(topRules, method="graph")
 plot(topRules, method = "grouped")
-                        
-                        
-                        
+
+
